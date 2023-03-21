@@ -1,6 +1,9 @@
-[submodule "mars/utils"]
-	path = mars/utils
+[submodule "mars/src/utils"]
+	path = mars/src/utils
 	url = https://github.com/BinghamtonRover/Firmware-Utilities
-[submodule "mars/tmc"]
-	path = mars/tmc
+[submodule "mars/src/tmc"]
+	path = mars/src/tmc
 	url = https://github.com/BinghamtonRover/TMC-Firmware
+[submodule "Protobuf"]
+	path = Protobuf
+	url = https://github.com/BinghamtonRover/Protobuf
