@@ -4,3 +4,6 @@
 [submodule "mars/src/tmc"]
 	path = mars/src/tmc
 	url = https://github.com/BinghamtonRover/TMC-Firmware
+[submodule "Protobuf"]
+	path = Protobuf
+	url = https://github.com/BinghamtonRover/Protobuf
