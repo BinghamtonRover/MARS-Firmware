@@ -13,6 +13,7 @@
 typedef struct _GpsCoordinates {
     float latitude;
     float longitude;
+    float altitude;
 } GpsCoordinates;
 
 
@@ -21,17 +22,19 @@ extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define GpsCoordinates_init_default              {0, 0}
-#define GpsCoordinates_init_zero                 {0, 0}
+#define GpsCoordinates_init_default              {0, 0, 0}
+#define GpsCoordinates_init_zero                 {0, 0, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define GpsCoordinates_latitude_tag              1
 #define GpsCoordinates_longitude_tag             2
+#define GpsCoordinates_altitude_tag              3
 
 /* Struct field encoding specification for nanopb */
 #define GpsCoordinates_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, FLOAT,    latitude,          1) \
-X(a, STATIC,   SINGULAR, FLOAT,    longitude,         2)
+X(a, STATIC,   SINGULAR, FLOAT,    longitude,         2) \
+X(a, STATIC,   SINGULAR, FLOAT,    altitude,          3)
 #define GpsCoordinates_CALLBACK NULL
 #define GpsCoordinates_DEFAULT NULL
 
@@ -41,7 +44,7 @@ extern const pb_msgdesc_t GpsCoordinates_msg;
 #define GpsCoordinates_fields &GpsCoordinates_msg
 
 /* Maximum encoded size of messages (where known) */
-#define GpsCoordinates_size                      10
+#define GpsCoordinates_size                      15
 
 #ifdef __cplusplus
 } /* extern "C" */
