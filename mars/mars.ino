@@ -1,15 +1,11 @@
 #include "src/tmc/BURT_TMC.h"
 #include "src/utils/BURT_utils.h"
 #include "src/gps.pb.h"
-
+#include "pin_select.h"
 #include <math.h>
 
 #define THRESHOLD_SWIVEL 10
 #define THRESHOLD_TILT 2
-
-StepperMotor swivel(10, 29, 0, 1500, -PI, PI, 100, 324, 162, "Swivel");
-StepperMotor tiltneg(1, 2, 3, 4, 5, 6, 7, 8, 9, "TiltNeg");
-StepperMotor tiltpos(1, 2, 3, 4, 5, 6, 7, 8, 9, "TiltPos");
 
 GpsCoordinates currentposition;
 
@@ -20,17 +16,17 @@ void handler(const uint8_t* data, int length) {
   float anglez = getAngleTilt(coordinates);
   if(angleswivel>= THRESHOLD_SWIVEL) {
    swivel.moveBy(angleswivel);
-   tiltpos.moveBy(anglez);
-   tiltneg.moveBy(-1*anglez);
+  tiltPos.moveBy(anglez);
+  tiltNeg.moveBy(-1*anglez);
   currentposition.longitude = coordinates.longitude;
   currentposition.latitude = coordinates.latitude;
   }
   if(anglez>= THRESHOLD_TILT){
-     tiltpos.moveBy(anglez);
-   tiltneg.moveBy(-1*anglez);
+  tiltPos.moveBy(anglez);
+  tiltNeg.moveBy(-1*anglez);
   currentposition.altitude = coordinates.altitude;
   }
-  // ...
+  
 }
 
 BurtSerial serial(handler, Device::Device_MARS);
@@ -54,23 +50,24 @@ float getAngleTilt(GpsCoordinates coordinates){
  }
 
 void setup() { 
-  tiltneg.presetup();
+ tiltNeg.presetup();
   swivel.presetup();
-  tiltpos.presetup();
+  tiltPos.presetup();
 
   swivel.setup();
-  tiltpos.setup();
-  tiltneg.setup();
-
-  swivel.moveBy(PI);
+  tiltPos.setup();
+ tiltNeg.setup();
+  tiltPos.moveBy(0);
+  tiltNeg.moveBy(0);
+  //swivel.moveBy(PI);
   delay(2000);
-  swivel.moveBy(-PI);
+  //swivel.moveBy(-PI);
 } 
 
 void loop() {
   swivel.update();
-  tiltpos.update();
-  tiltneg.update();
+  tiltPos.update();
+  tiltNeg.update();
 
   serial.update();
   delay(10);
