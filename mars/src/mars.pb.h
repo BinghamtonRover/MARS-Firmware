@@ -17,12 +17,16 @@ typedef struct _MarsCommand {
     float tilt;
     /* Automatic control */
     bool has_position;
-    RoverPosition position;
+    GpsCoordinates position;
+    bool has_baseStationOverride;
+    GpsCoordinates baseStationOverride;
 } MarsCommand;
 
 typedef struct _MarsData {
     float swivel;
     float tilt;
+    bool has_coordinates;
+    GpsCoordinates coordinates;
 } MarsData;
 
 
@@ -31,32 +35,38 @@ extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define MarsCommand_init_default                 {0, 0, false, RoverPosition_init_default}
-#define MarsData_init_default                    {0, 0}
-#define MarsCommand_init_zero                    {0, 0, false, RoverPosition_init_zero}
-#define MarsData_init_zero                       {0, 0}
+#define MarsCommand_init_default                 {0, 0, false, GpsCoordinates_init_default, false, GpsCoordinates_init_default}
+#define MarsData_init_default                    {0, 0, false, GpsCoordinates_init_default}
+#define MarsCommand_init_zero                    {0, 0, false, GpsCoordinates_init_zero, false, GpsCoordinates_init_zero}
+#define MarsData_init_zero                       {0, 0, false, GpsCoordinates_init_zero}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define MarsCommand_swivel_tag                   1
 #define MarsCommand_tilt_tag                     2
 #define MarsCommand_position_tag                 3
+#define MarsCommand_baseStationOverride_tag      4
 #define MarsData_swivel_tag                      1
 #define MarsData_tilt_tag                        2
+#define MarsData_coordinates_tag                 3
 
 /* Struct field encoding specification for nanopb */
 #define MarsCommand_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, FLOAT,    swivel,            1) \
 X(a, STATIC,   SINGULAR, FLOAT,    tilt,              2) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  position,          3)
+X(a, STATIC,   OPTIONAL, MESSAGE,  position,          3) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  baseStationOverride,   4)
 #define MarsCommand_CALLBACK NULL
 #define MarsCommand_DEFAULT NULL
-#define MarsCommand_position_MSGTYPE RoverPosition
+#define MarsCommand_position_MSGTYPE GpsCoordinates
+#define MarsCommand_baseStationOverride_MSGTYPE GpsCoordinates
 
 #define MarsData_FIELDLIST(X, a) \
 X(a, STATIC,   SINGULAR, FLOAT,    swivel,            1) \
-X(a, STATIC,   SINGULAR, FLOAT,    tilt,              2)
+X(a, STATIC,   SINGULAR, FLOAT,    tilt,              2) \
+X(a, STATIC,   OPTIONAL, MESSAGE,  coordinates,       3)
 #define MarsData_CALLBACK NULL
 #define MarsData_DEFAULT NULL
+#define MarsData_coordinates_MSGTYPE GpsCoordinates
 
 extern const pb_msgdesc_t MarsCommand_msg;
 extern const pb_msgdesc_t MarsData_msg;
@@ -66,8 +76,8 @@ extern const pb_msgdesc_t MarsData_msg;
 #define MarsData_fields &MarsData_msg
 
 /* Maximum encoded size of messages (where known) */
-#define MarsCommand_size                         63
-#define MarsData_size                            10
+#define MarsCommand_size                         44
+#define MarsData_size                            27
 
 #ifdef __cplusplus
 } /* extern "C" */
