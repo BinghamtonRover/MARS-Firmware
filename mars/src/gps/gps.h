@@ -4,16 +4,17 @@
 #include "../gps.pb.h"
 
 #define GPS_BAUD 9600
+#define GPS_SERIAL Serial4
 
 class Gps {
 	private:
 		TinyGPSPlus gps;
-		SoftwareSerial softwareSerial;
 
 	public:
 		Gps(int rxPin, int txPin);
 
 		void setup();
+		void waitForFix();
 		GpsCoordinates getCoordinates();
-		GpsCoordinates getStationaryCoordinates();
+		GpsCoordinates getAverageReading(int numSamples);
 };

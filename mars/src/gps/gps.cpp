@@ -1,49 +1,47 @@
 #include "gps.h"
 
-Gps::Gps(int rxPin, int txPin); //  : softwareSerial(SoftwareSerial(rxPin, txPin)) { }
-
 void Gps::setup() {
 	Serial.begin(9600);
-	Serial4.begin(GPS_BAUD);
+	GPS_SERIAL.begin(GPS_BAUD);
 }
 
-void waitForFix() {
+void Gps::waitForFix() {
 	while (!gps.date.isValid()) {
-		while (Serial4.available() > 0) {
-			gps.encode(Serial4.read());
+		while (GPS_SERIAL.available() > 0) {
+			gps.encode(GPS_SERIAL.read());
 		}
 	}
 }
 
 GpsCoordinates Gps::getCoordinates() {
-	GpsCoordinates result = {-1, -1, -1};
-	while(Serial4.available() > 0) {
-		gps.encode(Serial4.read());
+	while(GPS_SERIAL.available() > 0) {
+		gps.encode(GPS_SERIAL.read());
 		if (!gps.location.isValid()) continue;
 		return {
-			x: gps.location.lat(),
-			y: gps.location.lng(),
-			z: gps.location.altitude.meters(),
-		}
+			latitude: (float) gps.location.lat(),
+			longitude: (float) gps.location.lng(),
+			altitude: (float) gps.altitude.meters(),
+		};
 	}
-	if (gps.charsProcessed < 10) {
+	if (gps.charsProcessed() < 10) {
 		Serial.println(F("No GPS detected: check wiring."));    
 		while (true);
 	}
 	return GpsCoordinates_init_zero;
 }
 
-GpsCoordinates gps::getAverageReading(int numSamples) {
-	long sumX, sumY, sumZ;
+GpsCoordinates Gps::getAverageReading(int numSamples) {
+	long longitudeSum = 0, latitudeSum = 0, altitudeSum = 0;
 	for (int i = 0; i < numSamples; i++) {
 		GpsCoordinates reading = getCoordinates();
-		sumX += reading.x;
-		sumY += reading.y;
-		sumZ += reading.z;
+		longitudeSum += reading.longitude;
+		latitudeSum += reading.latitude;
+		altitudeSum += reading.altitude;
+		delay(10);
 	}
 	return {
-		x: sumX / numSamples, 
-		y: sumY / numSamples, 
-		z: sumZ / numSamples
+		latitude: (float) latitudeSum / numSamples, 
+		longitude: (float) longitudeSum / numSamples, 
+		altitude: (float) altitudeSum / numSamples
 	};
 }

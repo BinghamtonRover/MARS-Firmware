@@ -1,4 +1,5 @@
 #include "src/tmc/BURT_TMC.h"
+#include "src/gps/gps.h"
 
 #define SPEED 0x000327e7
 #define ACCEL 0x00030d4d
@@ -17,7 +18,7 @@ StepperMotorConfig swivelConfig = {
 	name: "swivel",
 	current: 1500,
 	speed: SPEED,
-	accel: ACCEL
+	accel: ACCEL,
 	minLimit: -3 * PI/4,
 	maxLimit: 3 * PI/4,
 	isPositive: true,
@@ -39,7 +40,7 @@ StepperMotorConfig tiltPositiveConfig = {
 	name: "tiltPos",
 	current: 2000,
 	speed: SPEED,
-	accel: ACCEL
+	accel: ACCEL,
 	minLimit: -10*PI,
 	maxLimit: 10*PI,
 	isPositive: true,
@@ -61,7 +62,7 @@ StepperMotorConfig tiltNegativeConfig = {
 	name: "tiltNeg",
 	current: 2000,
 	speed: SPEED,
-	accel: ACCEL
+	accel: ACCEL,
 	minLimit: -10*PI,
 	maxLimit: 10*PI,
 	isPositive: false,
