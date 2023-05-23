@@ -1,140 +1,109 @@
-#include "src/tmc/BURT_TMC.h"
-#include "src/utils/BURT_utils.h"
-#include "src/gps.pb.h"
-#include "pin_select.h"
 #include <math.h>
+
+#include "src/utils/BURT_utils.h"
+
+#include "src/gps.pb.h"
+#include "src/mars.pb.h"
+#include "pinouts.h"
 
 #define THRESHOLD_SWIVEL  0.0                 // degrees
 #define THRESHOLD_TILT    0.0                 // degrees
+#define SEND_DATA_INTERVAL 1000
+#define GPS_SAMPLE_COUNT 10
 
-#define INIT_COORDS       { 0.0, 0.0, 0.0 }   // { latitude, longitude, altitude }
+GpsCoordinates baseStation = GpsCoordinates_init_zero;
+unsigned long nextSendTime;
 
-// comment to disable debug
-// #define DEBUG_ANGLE // enter in an angle to move swivel and/or tilt
-#define DEBUG_COORDS // enter in coordinates to move swivel and tilt
+void handleCommand(const uint8_t* data, int length);
+BurtSerial serial(handleCommand, Device::Device_MARS);
 
-GpsCoordinates local_coords = INIT_COORDS;
-#ifdef DEBUG_COORDS
-GpsCoordinates debug_coords = INIT_COORDS;
-uint8_t debug_count = 1;
-#endif
-void handler(const uint8_t* data, int length);
-#if !defined(DEBUG_ANGLE) && !defined(DEBUG_COORDS)
-BurtSerial serial(handler, Device::Device_MARS);
-#endif
+void setup() { 
+  delay(2000);
+  Serial.println("Initializing MARS subsystem...");
 
-void handler(const uint8_t* data, int length)
-{
-  auto coordinates = BurtProto::decode<GpsCoordinates>(data, length, GpsCoordinates_fields);
-  float angle_swivel = getAngleSwivel(coordinates);
-  float angle_tilt = getAngleTilt(coordinates);
+  Serial.println("Initializing motors...");
+  swivel.presetup();
+  tiltNegative.presetup();
+  tiltPositive.presetup();
 
-  if(abs(angle_swivel - swivel.angle) >= THRESHOLD_SWIVEL)
-  {
-    swivel.moveTo(angle_swivel);
-  }
+  swivel.setup();
+  tiltPositive.setup();
+  tiltNegative.setup();
 
-  if(abs(angle_tilt - titlPos.angle) >= THRESHOLD_TILT)
-  {
-    tiltPos.moveTo(angle_tilt);
-    tiltNeg.moveTo(angle_tilt);
-  } 
+  Serial.print("Initializing GPS, waiting for fix... ");
+  gps.setup();
+  gps.waitForFix();
+  Serial.print("Got a fix... ");
+  baseStation = gps.getAverageReading(GPS_SAMPLE_COUNT);
+  Serial.println("Done!");
+
+  Serial.println("MARS subsystem initialized.");
+  nextSendTime = millis() + SEND_DATA_INTERVAL;
+} 
+
+void loop() {
+  // Update motors
+  swivel.update();
+  tiltPositive.update();
+  tiltNegative.update();
+
+  // Update communications
+  serial.update();
+  sendData();
 }
 
-// place holder
-GpsCoordinates getLocalCoords()
-{
-  GpsCoordinates coords = { 0, 0, 0 };
-  return coords;
-}
-
-float getAngleSwivel(GpsCoordinates coordinates)
-{
-  float diffx, diffy;
-  diffx = coordinates.latitude - local_coords.latitude;
-  diffy = coordinates.longitude - local_coords.longitude;
+float getAngleSwivel(GpsCoordinates coordinates) {
+  float diffx = coordinates.latitude - baseStation.latitude;
+  float diffy = coordinates.longitude - baseStation.longitude;
   return atan2(diffy,diffx);
 } 
 
-float getAngleTilt(GpsCoordinates coordinates)
-{
-  float diffx, diffy, diffz, distance;
-  diffx = coordinates.latitude - local_coords.latitude;
-  diffy = coordinates.longitude - local_coords.longitude;
-  diffz = coordinates.altitude - local_coords.altitude;
-  distance = sqrt(pow(diffx, 2) + pow(diffy, 2)); 
+float getAngleTilt(GpsCoordinates coordinates) {
+  float diffx = coordinates.latitude - baseStation.latitude;
+  float diffy = coordinates.longitude - baseStation.longitude;
+  float diffz = coordinates.altitude - baseStation.altitude;
+  float distance = sqrt(pow(diffx, 2) + pow(diffy, 2)); 
   return atan2(distance, diffz);
- }
+}
 
-void setup()
-{ 
-  tiltNeg.presetup();
-  swivel.presetup();
-  tiltPos.presetup();
+void handleCommand(const uint8_t* data, int length) {
+  auto command = BurtProto::decode<MarsCommand>(data, length, GpsCoordinates_fields);
 
-  swivel.setup();
-  tiltPos.setup();
-  tiltNeg.setup();
+  // Move the motors manually
+  swivel.moveBy(command.swivel);
+  /* DISABLED: The bands around the tilt will break
+  tiltPositive.moveBy(command.tilt);
+  tiltNegative.moveBy(-command.tilt);
+  */
 
-  delay(2000);
+  // Update the base station coordinates
+  if (command.has_baseStationOverride) baseStation = command.baseStationOverride;
 
-  local_coords = getLocalCoords();
-} 
-
-void loop()
-{
-  swivel.update();
-  tiltPos.update();
-  tiltNeg.update();
-  #if !defined(DEBUG_ANGLE) && !defined(DEBUG_COORDS)
-  serial.update();
-  #endif
-
-  #if defined(DEBUG_ANGLE)
-  if(Serial.available())
-  {
-    float angle = PI/180.0*Serial.parseInt();
-    // comment out to disable motion of motors
-    swivel.moveTo(angle);
-    // tiltPos.moveTo(angle);
-    // tiltNeg.moveTo(angle);
-  }
-  #elif defined(DEBUG_COORDS)
-  if(Serial.available())
-    {
-      switch(debug_count)
-      {
-        default:
-        case 1:
-          debug_coords.latitude = Serial.parseFloat();
-          debug_count++;
-          break;
-        case 2:
-          debug_coords.longitude = Serial.parseFloat();
-          debug_count++;
-          break;
-        case 3:
-          debug_coords.altitude = Serial.parseFloat();
-          float angle_swivel = getAngleSwivel(debug_coords);
-          float angle_tilt = getAngleTilt(debug_coords);
-
-          if(abs(angle_swivel - current_angle_swivel) >= THRESHOLD_SWIVEL)
-          {
-            swivel.moveTo(angle_swivel);
-            current_angle_swivel+= angle_swivel;
-          }
-
-          if(abs(angle_tilt - current_angle_tilt) >= THRESHOLD_TILT)
-          {
-            tiltPos.moveTo(angle_tilt);
-            tiltNeg.moveTo(angle_tilt);
-            current_angle_tilt+= angle_tilt;
-          }
-          debug_count = 1;
-          break;
-      }
+  // Update the rover's position and move the motors
+  if (command.has_position) {
+    // Swivel to face the rover
+    float angle_swivel = getAngleSwivel(command.position);
+    if(abs(angle_swivel - swivel.getPosition()) >= THRESHOLD_SWIVEL) {
+      swivel.moveTo(angle_swivel);
     }
-  #endif
 
-  delay(10);
+    // Tilt to face the rover
+    /* DISABLED: The bands around the tilt motors will break
+    float angle_tilt = getAngleTilt(command.position);
+    if(abs(angle_tilt - titlPos.angle) >= THRESHOLD_TILT) {
+      tiltPositive.moveTo(angle_tilt);
+      tiltNegative.moveTo(-angle_tilt);
+    }
+    */
+  }
+}
+
+void sendData() {
+  if (millis() < nextSendTime) return;
+  MarsData data = {
+    swivel: swivel.getPosition(),
+    tilt: tiltPositive.getPosition(),
+    coordinates: baseStation,
+  };
+  serial.send(MarsData_fields, &data, MarsData_size);
 }
