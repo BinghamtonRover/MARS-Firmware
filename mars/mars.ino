@@ -17,8 +17,8 @@ unsigned long nextSendTime;
 void handleCommand(const uint8_t* data, int length);
 BurtSerial serial(handleCommand, Device::Device_MARS);
 
-void setup() { 
-  delay(2000);
+void setup() {
+  delay(1000);
   Serial.println("Initializing MARS subsystem...");
 
   Serial.println("Initializing motors...");
@@ -34,8 +34,16 @@ void setup() {
   gps.setup();
   gps.waitForFix();
   Serial.print("Got a fix... ");
+  delay(1000);
   baseStation = gps.getAverageReading(GPS_SAMPLE_COUNT);
   Serial.println("Done!");
+
+  Serial.print("Base station coordinates: lat=");
+  Serial.print(baseStation.latitude, 10);
+  Serial.print(", long=");
+  Serial.print(baseStation.longitude, 10);
+  Serial.print(", alt=");
+  Serial.println(baseStation.altitude, 10);
 
   Serial.println("MARS subsystem initialized.");
   nextSendTime = millis() + SEND_DATA_INTERVAL;
@@ -44,8 +52,10 @@ void setup() {
 void loop() {
   // Update motors
   swivel.update();
+  /* DISABLED: Motors will break!
   tiltPositive.update();
   tiltNegative.update();
+  */
 
   // Update communications
   serial.update();

@@ -16,7 +16,7 @@ StepperMotorPins swivelPins = {
 
 StepperMotorConfig swivelConfig = {
 	name: "swivel",
-	current: 1500,
+	current: 1000,
 	speed: SPEED,
 	accel: ACCEL,
 	minLimit: -3 * PI/4,
